@@ -1,39 +1,37 @@
 // lib/core/ble/ble_advertiser.dart
-import 'dart:io' show Platform;
+import 'dart:typed_data';                                  // ✅ add this
+import 'package:flutter/foundation.dart';
 import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
 
 class BLEAdvertiser {
-  // Keep your TMate service UUID simple for discovery
-  static const String tmateServiceUuid = "0000A11A-0000-1000-8000-00805F9B34FB";
+  final FlutterBlePeripheral _peripheral = FlutterBlePeripheral();
+  bool _isAdvertising = false;
 
-  final _peripheral = FlutterBlePeripheral();
+  static const int kMfgId = 0x03E8;
 
   Future<void> start() async {
-    if (!(Platform.isAndroid || Platform.isIOS)) return;
-
-    // NOTE: In 1.2.6 the enums/params are named like this:
-    final settings = AdvertiseSettings(
-      advertiseMode: AdvertiseMode.advertiseModeLowLatency,
-      txPowerLevel: AdvertiseTxPower.advertiseTxPowerHigh, // <- not 'TxPowerLevel'
-      timeout: 0,            // 0 = keep advertising
-      connectable: true,
+    final adv = AdvertiseData(
+      includeDeviceName: false,
+      manufacturerId: kMfgId,
+      manufacturerData: _buildBeacon(),                    // ✅ now Uint8List
     );
 
-    // NOTE: field is 'serviceUuid', not 'uuid'
-    final data = AdvertiseData(
-      includeDeviceName: true,
-      serviceUuid: tmateServiceUuid,
-      // manufacturerId / serviceData optional — skip for iOS simplicity
-    );
-
-    // NOTE: start() expects named params 'advertiseData' and (optional) 'advertiseSettings'
-    await _peripheral.start(
-      advertiseData: data,
-      advertiseSettings: settings,
-    );
+    await _peripheral.start(advertiseData: adv);
+    _isAdvertising = true;
+    debugPrint('📢 BLEAdvertiser started (mfgId=0x${kMfgId.toRadixString(16)})');
   }
 
-  Future<void> stop() async => _peripheral.stop();
+  Future<void> stop() async {
+    await _peripheral.stop();
+    _isAdvertising = false;
+  }
 
-  Future<bool> isAdvertising() async => await _peripheral.isAdvertising;
+  Future<bool> isAdvertising() async => _isAdvertising;
+
+  // ✅ Return Uint8List
+  Uint8List _buildBeacon() {
+    final nodeId = [0x00, 0x00, 0x00, 0x01];
+    final ttl = 4, seqHi = 0x00, seqLo = 0x01, flags = 0x00;
+    return Uint8List.fromList([...nodeId, ttl, seqHi, seqLo, flags]);
+  }
 }

@@ -22,7 +22,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   }
 
   Future<void> _initBle() async {
-    final granted = await requestBlePermissions();
+    final granted = await ensureAndroidBlePerms();
     if (!mounted) return;
     if (granted) {
       await ref.read(meshEngineProvider).initialize(); // starts scanning

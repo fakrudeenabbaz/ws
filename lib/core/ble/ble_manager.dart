@@ -37,11 +37,14 @@ class BLEManager {
     );
 
     await FlutterBluePlus.startScan(
-      // androidUsesFineLocation: true,  // ❌ remove this line
-      continuousUpdates: true,                 // keep updates flowing
-      removeIfGone: const Duration(seconds: 4),
-      timeout: timeout ?? const Duration(seconds: 0),
+      withServices: [Guid('0000FEAA-0000-1000-8000-00805F9B34FB')],
+      timeout: const Duration(seconds: 0), // continuous
     );
+    FlutterBluePlus.scanResults.listen((results) {
+      for (final r in results) {
+        // Read service/manufacturer data, update peer table
+      }
+    });
   }
 
   Future<void> stopScan() async {
